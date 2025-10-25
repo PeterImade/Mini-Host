@@ -15,4 +15,8 @@
     <Folder Include="Persistence\LogRepository\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Shared.csproj" />
+  </ItemGroup>
+
 </Project>

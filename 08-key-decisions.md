@@ -11,7 +11,6 @@
 | Application services only for orchestration | Keeps business logic centralized |
 | Repositories stay thin | Encapsulate EF Core only |
 | Use IModule for discovery | Enables modular registration at runtime |
-
 ---
 
 ## 💡 My Takeaways
