@@ -1,0 +1,59 @@
+bin/
+obj/
+logs/
+appsettings.json
+appsettings.Development.json
+.env
+*.log
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.bak
+*.resharper
+*.dotSettings
+*.csproj.user
+*.sln.docstates
+
+# Build Results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+*.pdb
+*.ilk
+*.log
+*.sbr
+*.bsc
+*.lib
+*.ncb
+*.tlb
+*.tlh
+*.tmp
+*.vspscc
+*.vssscc
+*.vsp
+*.vsw
+*.codecoverage
+*.build.log
+*.dsstore
+*.vc.db
+
+# Packages
+packages/
+node_modules/
+
+# Rider
+.idea/
+
+# DotNet Core
+project.lock.json
+project.fragment.lock.json
+*.nuget.props
+*.nuget.targets
+*.tmp
+*.cache
+*.deps.json
+*.runtimeconfig.json
+*.vs/
+.vs/

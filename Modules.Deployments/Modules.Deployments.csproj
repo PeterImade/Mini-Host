@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="API\Controllers\" />
+    <Folder Include="API\Mappings\" />
+    <Folder Include="Application\Commands\RemoveApp\" />
+    <Folder Include="Application\Commands\StopApp\" />
+    <Folder Include="Application\Interfaces\" />
+    <Folder Include="API\DTOs\" />
+    <Folder Include="Application\Validators\" />
+    <Folder Include="Application\Queries\GetDeploymentStatus\" />
+    <Folder Include="Application\Queries\GetDeploymentById\" />
+    <Folder Include="Domain\Entities\AppInstance\" />
+    <Folder Include="Domain\Entities\DeploymentHistory\" />
+    <Folder Include="Domain\Entities\DeploymentLog\" />
+    <Folder Include="Domain\Enums\" />
+    <Folder Include="Domain\Exceptions\" />
+    <Folder Include="Domain\Events\" />
+    <Folder Include="Domain\ValueObjects\" />
+    <Folder Include="Infrastructure\Docker\" />
+    <Folder Include="Infrastructure\Git\" />
+    <Folder Include="Infrastructure\Extensions\" />
+    <Folder Include="Infrastructure\Config\" />
+    <Folder Include="Infrastructure\Nginx\" />
+    <Folder Include="Persistence\Context\" />
+    <Folder Include="Persistence\Repositories\" />
+  </ItemGroup>
+
+</Project>
