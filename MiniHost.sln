@@ -40,6 +40,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "architecture", "architectur
 		06-cqrs-and-mediatr.md = 06-cqrs-and-mediatr.md
 		07-clean-architecture-principles.md = 07-clean-architecture-principles.md
 		08-key-decisions.md = 08-key-decisions.md
+		09-database-choice.md = 09-database-choice.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1CD6DD91-3208-4F4E-B2A9-5062EEE9B049}"

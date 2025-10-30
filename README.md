@@ -16,6 +16,7 @@ This documentation explains the architectural philosophy, design patterns, and d
 6. [CQRS & MediatR](06-cqrs-and-mediatr.md)
 7. [Clean Architecture Principles](07-clean-architecture-principles.md)
 8. [Key Decisions & Trade-offs](08-key-decisions.md)
+9. [Database Choice](09-database-choice.md)
 
 ---
 

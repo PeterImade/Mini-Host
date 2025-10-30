@@ -33,3 +33,12 @@ Keep dependency arrows pointing inward. Always.
 - Following the Dependency Inversion Principle that states high level modules, in the case Application Layer, Domain Layer, should not depend directly on low level modules(Infrastructure); both should depend on abstractions.
 
 - The Infrastructure layer is what speaks to the outside world i.e communicates with external services.
+
+
+### Why add DTOs, validation, and mapping to the API layer?
+I added DTOs validation and mapping to the API layer because it is the responsibility of the API layer to map external DTOs and internal domain models, validate external requests before reaching the application layer, and also define how data is being received from or returned to the clients. This separation prevents API-specific details (like JSON shape or HTTP request models) from leaking into business logic.
+
+💡 Architect insight:
+API = your translation layer.
+It’s where “outside” (HTTP world) meets “inside” (domain world).
+You translate, validate, and normalize everything at the boundary, so your core stays clean.
