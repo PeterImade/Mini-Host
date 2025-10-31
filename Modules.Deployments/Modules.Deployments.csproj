@@ -11,7 +11,6 @@
     <Folder Include="API\Mappings\" />
     <Folder Include="Application\Commands\RemoveApp\" />
     <Folder Include="Application\Commands\StopApp\" />
-    <Folder Include="Application\Interfaces\" />
     <Folder Include="API\DTOs\" />
     <Folder Include="Application\Validators\" />
     <Folder Include="Application\Queries\GetDeploymentStatus\" />
@@ -21,8 +20,11 @@
     <Folder Include="Infrastructure\Extensions\" />
     <Folder Include="Infrastructure\Config\" />
     <Folder Include="Infrastructure\Nginx\" />
-    <Folder Include="Persistence\Context\" />
-    <Folder Include="Persistence\Repositories\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.21" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.21" />
   </ItemGroup>
 
   <ItemGroup>
