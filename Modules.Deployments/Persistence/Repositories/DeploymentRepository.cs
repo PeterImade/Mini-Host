@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Modules.Deployments.Application.Interfaces;
 using Modules.Deployments.Domain.Entities;
 using Modules.Deployments.Persistence.Context;
@@ -18,6 +19,17 @@ namespace Modules.Deployments.Persistence.Repositories
         public async Task AddAsync(AppInstance app, CancellationToken cancellationToken = default) =>
             await _dbContext.AppInstances.AddAsync(app, cancellationToken);
 
+        public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        }
+
+        public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if(_dbContext.Database.CurrentTransaction is not null)
+                await _dbContext.Database.CommitTransactionAsync(cancellationToken);
+        }
+
         public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var appInstance = await _dbContext.AppInstances.FindAsync(id, cancellationToken);
@@ -31,6 +43,12 @@ namespace Modules.Deployments.Persistence.Repositories
 
         public async Task<AppInstance?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
             await _dbContext.AppInstances.FindAsync(id, cancellationToken);
+
+        public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if(_dbContext.Database.CurrentTransaction is not null)
+                await _dbContext.Database.RollbackTransactionAsync(cancellationToken);
+        }
 
         public async Task SaveChangesAsync(CancellationToken cancellationToken = default) => await _dbContext.SaveChangesAsync(cancellationToken);
 

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Modules.Deployments.Application.Commands.DeployApp
+namespace Modules.Deployments.API.Validators
 {
-    internal class DeployAppCommand
+    internal class DeployAppValidator
     {
     }
 }

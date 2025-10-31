@@ -1,4 +1,5 @@
-﻿using Modules.Deployments.Domain.Entities;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using Modules.Deployments.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,8 @@ namespace Modules.Deployments.Application.Interfaces
         Task UpdateAsync(AppInstance app, CancellationToken cancellationToken = default);
         Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
         Task SaveChangesAsync(CancellationToken cancellationToken = default);
+        Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+        Task CommitTransactionAsync(CancellationToken cancellationToken = default);
+        Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
     }
 }
