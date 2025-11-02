@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Modules.Deployments.Application.Commands.DeployApp;
 using Modules.Deployments.Application.Interfaces;
 using Modules.Deployments.Infrastructure.Docker;
 using Modules.Deployments.Infrastructure.Git;
@@ -23,6 +24,7 @@ namespace Modules.Deployments
             services.AddScoped<INginxManager, NginxManager>();
             services.AddScoped<IGitService, GitService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IDeployAppHandler, DeployAppHandler>();
         }
     }
 }

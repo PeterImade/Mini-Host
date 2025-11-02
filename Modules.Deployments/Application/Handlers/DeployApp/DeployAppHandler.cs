@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Modules.Deployments.Application.Commands.DeployApp
 {
-    public class DeployAppCommandHandler
+    public class DeployAppHandler: IDeployAppHandler
     {
         private readonly IDeploymentRepository _deploymentRepository;
         private readonly IDockerManager _dockerManager;
@@ -18,7 +18,7 @@ namespace Modules.Deployments.Application.Commands.DeployApp
         private readonly INginxManager _nginxManager;
         private readonly IUnitOfWork _unitOfWork;
 
-        public DeployAppCommandHandler(IDeploymentRepository deploymentRepository, IDockerManager dockerManager, IGitService gitService, INginxManager nginxManager, IUnitOfWork unitOfWork)
+        public DeployAppHandler(IDeploymentRepository deploymentRepository, IDockerManager dockerManager, IGitService gitService, INginxManager nginxManager, IUnitOfWork unitOfWork)
         {
             _deploymentRepository = deploymentRepository;
             _dockerManager = dockerManager;

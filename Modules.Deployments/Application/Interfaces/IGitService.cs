@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Modules.Deployments.Domain.ValueObjects;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,6 @@ namespace Modules.Deployments.Application.Interfaces
 {
     public interface IGitService
     {
-        Task<string> CloneAsync(string repoUrl, CancellationToken cancellationToken);
+        Task<string> CloneAsync(RepoUrl repoUrl, CancellationToken cancellationToken);
     }
 }

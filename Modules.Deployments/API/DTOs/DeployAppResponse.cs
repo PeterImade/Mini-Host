@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace Modules.Deployments.API.DTOs
 {
-    public record DeployAppResponse(Guid Id, string repoUrl, string status, string containerId, DateTime DeployedAt);  
+    public record DeployAppResponse(Guid Id, string RepoUrl, string Status, string ContainerId, DateTime DeployedAt);  
 }

@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace Modules.Deployments.API.DTOs
 {
-    public record DeployAppRequest(string repoUrl, int port);
+    public record DeployAppRequest(string RepoUrl, int Port);
 }
