@@ -9,7 +9,7 @@ namespace Modules.Deployments.Application.Interfaces
 {
     public interface INginxManager
     {
-        Task ConfigureReverseProxyAsync(string containerId, int port, CancellationToken cancellationToken);
-        Task RemoveReverseProxyConfigAsync(Port port, CancellationToken cancellationToken);
+        Task ConfigureReverseProxyAsync(string containerId, string domain, Port port, CancellationToken cancellationToken);
+        Task RemoveReverseProxyConfigAsync(string domain, CancellationToken cancellationToken);
     }
 }

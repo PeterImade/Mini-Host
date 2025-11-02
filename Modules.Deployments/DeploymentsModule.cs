@@ -25,6 +25,7 @@ namespace Modules.Deployments
             services.AddScoped<IGitService, GitService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IDeployAppHandler, DeployAppHandler>();
+            services.AddScoped<IRuntimeDetector, RuntimeDetector>();
         }
     }
 }

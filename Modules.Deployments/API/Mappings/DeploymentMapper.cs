@@ -12,7 +12,7 @@ namespace Modules.Deployments.API.Mappings
     {
         public static DeployAppResponse ToResponseDto(AppInstance appInstance)
         {
-            var deployAppResponse = new DeployAppResponse(appInstance.Id, appInstance.RepoUrl, appInstance.Status.ToString(), appInstance.ContainerId, appInstance.DeployedAt);
+            var deployAppResponse = new DeployAppResponse(appInstance.Id, appInstance.RepoUrl, appInstance.Status.ToString(), appInstance.ContainerId, appInstance.Domain!, appInstance.DeployedAt);
 
             return deployAppResponse;
         }

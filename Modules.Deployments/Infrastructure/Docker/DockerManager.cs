@@ -20,7 +20,7 @@ namespace Modules.Deployments.Infrastructure.Docker
         private readonly DockerClient _dockerClient;
         public DockerManager()
         {
-            _dockerClient = new DockerClientConfiguration(new Uri("unix:///var/run/docker.sock")).CreateClient();
+            _dockerClient = new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine")).CreateClient();
         }
         public async Task<string> BuildAndRunContainerAsync(string repoPath, int port, CancellationToken cancellationToken)
         {

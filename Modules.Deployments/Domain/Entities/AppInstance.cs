@@ -16,6 +16,7 @@ namespace Modules.Deployments.Domain.Entities
         public Port Port { get; private set; }
         public string ContainerId { get; private set; }
         public DeploymentStatus Status { get; private set; }
+        public string? Domain { get; private set; }
         public DateTime DeployedAt { get; private set; }
 
 
@@ -40,5 +41,7 @@ namespace Modules.Deployments.Domain.Entities
         public void MarkAsFailed() => Status = DeploymentStatus.Failed;
         public void MarkAsStopped() => Status = DeploymentStatus.Stopped;
         public void MarkAsCompleted() => Status = DeploymentStatus.Completed;
+
+        public void AssignDomain(string domain) => Domain = domain;
     }
 }

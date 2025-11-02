@@ -1,4 +1,5 @@
-﻿using Modules.Deployments.Application.Interfaces;
+﻿using Microsoft.Extensions.Configuration;
+using Modules.Deployments.Application.Interfaces;
 using Modules.Deployments.Domain.Entities;
 using Modules.Deployments.Domain.Exceptions;
 using Modules.Deployments.Domain.ValueObjects;
@@ -17,58 +18,78 @@ namespace Modules.Deployments.Application.Commands.DeployApp
         private readonly IGitService _gitService;
         private readonly INginxManager _nginxManager;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IRuntimeDetector _runtimeDetector;
+        private readonly string _baseDomain;
 
-        public DeployAppHandler(IDeploymentRepository deploymentRepository, IDockerManager dockerManager, IGitService gitService, INginxManager nginxManager, IUnitOfWork unitOfWork)
+        public DeployAppHandler(IDeploymentRepository deploymentRepository, IDockerManager dockerManager, IGitService gitService, INginxManager nginxManager, IUnitOfWork unitOfWork, IRuntimeDetector runtimeDetector, IConfiguration configuration)
         {
             _deploymentRepository = deploymentRepository;
             _dockerManager = dockerManager;
             _gitService = gitService;
             _nginxManager = nginxManager;
             _unitOfWork = unitOfWork;
+            _runtimeDetector = runtimeDetector;
+            _baseDomain = configuration["Deployment:BaseDomain"]!;
         }
 
         public async Task<AppInstance> HandleAsync(string repoUrl, int port, CancellationToken cancellationToken)
         {
-            var repo = new RepoUrl(repoUrl);
-            var validPort = new Port(port);
-
             string? containerId = null;
             string? localPath = null;
-
-            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            string? domain = null;
 
             try
             {
-                localPath = await _gitService.CloneAsync(repo, cancellationToken);
-                containerId = await _dockerManager.BuildAndRunContainerAsync(localPath, validPort, cancellationToken);
-                await _nginxManager.ConfigureReverseProxyAsync(containerId, validPort, cancellationToken);
+                // 1️⃣ Clone repo
+                localPath = await _gitService.CloneAsync(new RepoUrl(repoUrl), cancellationToken);
 
+                // 2️⃣ Ensure Dockerfile exists
+                _runtimeDetector.EnsureDockerfileExists(localPath);
 
-                var appInstance = new AppInstance(repo, validPort);
-                appInstance.MarkAsRunning(containerId);
+                // 3️⃣ Build + run container
+                containerId = await _dockerManager.BuildAndRunContainerAsync(localPath, new Port(port), cancellationToken);
 
-                await _deploymentRepository.AddAsync(appInstance, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);   
+                // 4️⃣ Generate domain (e.g. app-12ab34.yourpaas.com)
+                var slug = Guid.NewGuid().ToString("N")[..6];
+                domain = $"app-{slug}.{_baseDomain}";
 
-                return appInstance;
+                // 5️⃣ Configure Nginx
+                await _nginxManager.ConfigureReverseProxyAsync(containerId, domain, new Port(port), cancellationToken);
+
+                // 6️⃣ Save deployment
+                var instance = new AppInstance(new RepoUrl(repoUrl), new Port(port));
+                instance.AssignDomain(domain);
+                instance.MarkAsRunning(containerId);
+                await _deploymentRepository.AddAsync(instance, cancellationToken);
+
+                Console.WriteLine($"✅ Deployed {repoUrl} → {domain} (port {port})");
+
+                return instance;
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                Console.WriteLine($"❌ Deployment failed: {ex.Message}");
 
-                if(!string.IsNullOrEmpty(containerId))
-                    await _dockerManager.StopAndRemoveContainerAsync(containerId, cancellationToken);
+                // Stop container
+                if (!string.IsNullOrEmpty(containerId))
+                {
+                    try { await _dockerManager.StopAndRemoveContainerAsync(containerId, cancellationToken); } catch { }
+                }
 
+                // Delete repo folder
                 if (!string.IsNullOrEmpty(localPath) && Directory.Exists(localPath))
-                    Directory.Delete(localPath, true);
+                {
+                    try { Directory.Delete(localPath, true); } catch { }
+                }
 
-                // optional: placeholder for Nginx cleanup
-                // await _nginxManager.RemoveReverseProxyConfigAsync(validPort, cancellationToken);
+                // Remove nginx config
+                if (!string.IsNullOrEmpty(domain))
+                {
+                    try { await _nginxManager.RemoveReverseProxyConfigAsync(domain, cancellationToken); } catch { }
+                }
 
-                throw new DomainException($"Deployment failed and rolled back: {ex.Message}");
-
-            } 
+                throw new DomainException($"Deployment failed and was rolled back: {ex.Message}");
+            }
         }
     }
 }
