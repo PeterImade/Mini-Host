@@ -1,4 +1,5 @@
 
+using API.Configurations;
 using Shared.Exceptions;
 
 namespace API
@@ -18,7 +19,13 @@ namespace API
 
             builder.Services.AddModules(builder.Configuration);
 
+
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
+
             var app = builder.Build();
+
+            app.UseExceptionHandler();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -33,7 +40,6 @@ namespace API
 
 
             app.MapControllers();
-
             app.Run();
         }
     }
