@@ -4,6 +4,7 @@ using Shared.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,16 +14,35 @@ namespace Shared.Exceptions
     {
         public static IServiceCollection AddModules(this IServiceCollection services, IConfiguration configuration)
         {
-            // Discover all assemblies that reference MiniHost.Shared
+            // Force-load all assemblies that start with "Modules."
+            var baseDir = AppContext.BaseDirectory;
+            var moduleDlls = Directory.GetFiles(baseDir, "Modules.*.dll", SearchOption.TopDirectoryOnly);
+
+            foreach (var dll in moduleDlls)
+            {
+                try
+                {
+                    var assemblyName = AssemblyName.GetAssemblyName(dll);
+                    if (AppDomain.CurrentDomain.GetAssemblies().All(a => a.GetName().Name != assemblyName.Name))
+                    {
+                        Assembly.Load(assemblyName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+
+            // Discover all assemblies
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
-            // Find all types that implement IModule
+            // Find all types implementing IModule
             var moduleTypes = assemblies
-            .SelectMany(a => a.GetTypes())
-            .Where(t => typeof(IModule).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
-            .ToList();
+                .SelectMany(a => a.GetTypes())
+                .Where(t => typeof(IModule).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
+                .ToList();
 
-            // Instantiate and register each module
+            // Instantiate and register
             foreach (var type in moduleTypes)
             {
                 var module = (IModule)Activator.CreateInstance(type)!;
@@ -32,4 +52,5 @@ namespace Shared.Exceptions
             return services;
         }
     }
+
 }

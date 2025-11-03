@@ -24,6 +24,7 @@ namespace Modules.Deployments
             services.AddDbContext<DeploymentsDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("PaasDatabase"),
                     sql => sql.MigrationsAssembly(typeof(DeploymentsDbContext).Assembly.FullName)));
+
             services.AddScoped<IDeploymentRepository, DeploymentRepository>();
             services.AddScoped<IDockerManager, DockerManager>();
             services.AddScoped<INginxManager, NginxManager>();

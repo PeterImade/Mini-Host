@@ -9,11 +9,8 @@ using System.Threading.Tasks;
 
 namespace Modules.Apps
 {
-    public class AppsModule: IModule
+    public class AppsModule
     {
-        public void RegisterModule(IServiceCollection services, IConfiguration configuration)
-        {
-            throw new NotImplementedException();
-        }
+ 
     }
 }

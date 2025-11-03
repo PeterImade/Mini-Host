@@ -24,51 +24,59 @@ namespace Modules.Deployments.Infrastructure.Docker
         }
         public async Task<string> BuildAndRunContainerAsync(string repoPath, int port, CancellationToken cancellationToken)
         {
-            string imageTag = $"app_{Guid.NewGuid()}";
-
-            using (var buildContext = BuildContextFromDirectory(repoPath))
+            try
             {
-                var buildParams = new ImageBuildParameters
+                string imageTag = $"app_{Guid.NewGuid()}";
+
+                using (var buildContext = BuildContextFromDirectory(repoPath))
                 {
-                    Tags = new[] { imageTag },
-                };
+                    var buildParams = new ImageBuildParameters
+                    {
+                        Tags = new[] { imageTag },
+                    };
 
-                var progress = new Progress<JSONMessage>(message =>
+                    var progress = new Progress<JSONMessage>(message =>
+                    {
+                        if (!string.IsNullOrEmpty(message.Stream))
+                            Console.WriteLine(message.Stream.Trim());
+                        if (!string.IsNullOrEmpty(message.ErrorMessage))
+                            Console.WriteLine($"[Docker Error]: {message.ErrorMessage}");
+                    });
+
+                    await _dockerClient.Images.BuildImageFromDockerfileAsync(
+                        buildParams,        // your ImageBuildParameters
+                        buildContext,       // TAR stream
+                        null,               // authConfigs
+                        null,               // headers
+                        progress,           // progress reporter
+                        cancellationToken
+                    );
+                }
+
+                var createResponse = await _dockerClient.Containers.CreateContainerAsync(new CreateContainerParameters
                 {
-                    if (!string.IsNullOrEmpty(message.Stream))
-                        Console.WriteLine(message.Stream.Trim());
-                    if (!string.IsNullOrEmpty(message.ErrorMessage))
-                        Console.WriteLine($"[Docker Error]: {message.ErrorMessage}");
-                });
-
-                await _dockerClient.Images.BuildImageFromDockerfileAsync(
-                    buildParams,        // your ImageBuildParameters
-                    buildContext,       // TAR stream
-                    null,               // authConfigs
-                    null,               // headers
-                    progress,           // progress reporter
-                    cancellationToken
-                ); 
-            }
-
-            var createResponse = await _dockerClient.Containers.CreateContainerAsync(new CreateContainerParameters
-            {
-                Image = imageTag,
-                ExposedPorts = new Dictionary<string, EmptyStruct> {
+                    Image = imageTag,
+                    ExposedPorts = new Dictionary<string, EmptyStruct> {
                     { port.ToString(), default }
                 },
-                HostConfig = new HostConfig
-                {
-                    PortBindings = new Dictionary<string, IList<PortBinding>>
+                    HostConfig = new HostConfig
                     {
-                        [port.ToString()] = new List<PortBinding> { new() { HostPort = port.ToString() } }
+                        PortBindings = new Dictionary<string, IList<PortBinding>>
+                        {
+                            [port.ToString()] = new List<PortBinding> { new() { HostPort = port.ToString() } }
+                        }
                     }
-                }
-            }, cancellationToken);
+                }, cancellationToken);
 
-            await _dockerClient.Containers.StartContainerAsync(createResponse.ID, new ContainerStartParameters(), cancellationToken);
+                await _dockerClient.Containers.StartContainerAsync(createResponse.ID, new ContainerStartParameters(), cancellationToken);
 
-            return createResponse.ID;
+                return createResponse.ID;
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
 
         public async Task StopAndRemoveContainerAsync(string containerId, CancellationToken cancellationToken)
