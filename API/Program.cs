@@ -1,5 +1,6 @@
 
 using API.Configurations;
+using Microsoft.EntityFrameworkCore;
 using Shared.Exceptions;
 
 namespace API
@@ -22,6 +23,8 @@ namespace API
 
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             builder.Services.AddProblemDetails();
+
+
 
             var app = builder.Build();
 

@@ -1,5 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Modules.Logs.Application.Interfaces;
+using Modules.Logs.Infrastructure.Services;
+using Modules.Logs.Persistence.Context;
 using Shared.Abstractions;
 using System;
 using System.Collections.Generic;
@@ -13,7 +17,11 @@ namespace Modules.Logs
     {
         public void RegisterModule(IServiceCollection services, IConfiguration configuration)
         {
-            throw new NotImplementedException();
+            services.AddScoped<IDeploymentLogService, DeploymentLogService>();
+
+            services.AddDbContext<LogsDbContext>(options =>
+               options.UseSqlServer(configuration.GetConnectionString("PaasDatabase"),
+                   sql => sql.MigrationsAssembly(typeof(LogsDbContext).Assembly.FullName)));
         }
     }
 }

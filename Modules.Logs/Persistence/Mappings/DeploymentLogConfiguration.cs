@@ -14,10 +14,15 @@ namespace Modules.Deployments.Persistence.Mappings
         public void Configure(EntityTypeBuilder<DeploymentLog> builder)
         {
             builder.HasKey(x => x.Id);
+            
             builder.Property(x => x.Message)
                 .IsRequired()
                 .HasMaxLength(2000);
+            
+            builder.HasIndex(x => x.AppInstanceId);
+
             builder.ToTable("DeploymentLogs");
+
         }
     }
 }

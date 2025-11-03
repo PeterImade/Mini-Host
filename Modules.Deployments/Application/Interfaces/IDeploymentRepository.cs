@@ -12,7 +12,7 @@ namespace Modules.Deployments.Application.Interfaces
     {
         Task<AppInstance?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task<IEnumerable<AppInstance>> GetAllAsync(CancellationToken cancellationToken = default);
-        Task AddAsync(AppInstance app, CancellationToken cancellationToken = default);
+        Task AddAsync(AppInstance app, CancellationToken cancellationToken = default); 
         Task UpdateAsync(AppInstance app, CancellationToken cancellationToken = default);
         Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
         Task SaveChangesAsync(CancellationToken cancellationToken = default);

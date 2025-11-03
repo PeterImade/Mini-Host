@@ -16,9 +16,7 @@ namespace Modules.Deployments.Persistence.Context
             
         }
 
-        public DbSet<AppInstance> AppInstances { get; set; }
-        public DbSet<DeploymentHistory> DeploymentHistories { get; set; }
-        public DbSet<DeploymentLog> DeploymentLogs { get; set; }
+        public DbSet<AppInstance> AppInstances { get; set; } 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

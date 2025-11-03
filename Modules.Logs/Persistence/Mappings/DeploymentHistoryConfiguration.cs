@@ -14,17 +14,18 @@ namespace Modules.Deployments.Persistence.Mappings
         public void Configure(EntityTypeBuilder<DeploymentHistory> builder)
         {
             builder.HasKey(x => x.Id);
+            
             builder.Property(x => x.Action).IsRequired();
+
             builder.Property(x => x.TimeStamp)
                 .IsRequired()
                 .HasColumnType("datetime2");
+
             builder.Property(x => x.PerformedBy).HasMaxLength(100);
+            
             builder.HasIndex(x => x.AppInstanceId);
+            
             builder.ToTable("DeploymentHistories");
-            builder.HasOne<AppInstance>()
-                .WithMany()
-                .HasForeignKey(x => x.AppInstanceId)
-                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

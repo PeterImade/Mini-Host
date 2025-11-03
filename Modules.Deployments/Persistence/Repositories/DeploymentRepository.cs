@@ -18,6 +18,7 @@ namespace Modules.Deployments.Persistence.Repositories
         public DeploymentRepository(DeploymentsDbContext dbContext, CancellationToken cancellationToken = default) => _dbContext = dbContext;
         public async Task AddAsync(AppInstance app, CancellationToken cancellationToken = default) =>
             await _dbContext.AppInstances.AddAsync(app, cancellationToken);
+         
 
         public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
