@@ -99,16 +99,63 @@ namespace Modules.Deployments.Infrastructure.Docker
         {
             var mem = new MemoryStream();
 
+            // Load ignore patterns if .dockerignore exists
+            var dockerignorePath = Path.Combine(sourceDir, ".dockerignore");
+            var ignorePatterns = new List<string>();
+
+            if (File.Exists(dockerignorePath))
+            {
+                ignorePatterns = File.ReadAllLines(dockerignorePath)
+                    .Where(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith("#"))
+                    .Select(line => line.Trim())
+                    .ToList();
+            }
+
             using (var tarWriter = WriterFactory.Open(mem, ArchiveType.Tar, CompressionType.None))
             {
                 foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
                 {
                     var relativePath = Path.GetRelativePath(sourceDir, file);
+
+                    // Skip ignored files and directories
+                    if (ShouldIgnore(relativePath, ignorePatterns))
+                        continue;
+
                     tarWriter.Write(relativePath, file);
                 }
             }
+
             mem.Seek(0, SeekOrigin.Begin);
             return mem;
+        }
+
+        private static bool ShouldIgnore(string relativePath, List<string> ignorePatterns)
+        {
+            foreach (var pattern in ignorePatterns)
+            {
+                // Normalize paths
+                var normalizedPattern = pattern.Replace("\\", "/").Trim();
+                var normalizedPath = relativePath.Replace("\\", "/");
+
+                // Skip directories entirely
+                if (normalizedPath.StartsWith(normalizedPattern + "/", StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                // Simple wildcard support (*)
+                if (normalizedPattern.Contains('*'))
+                {
+                    var regex = "^" + System.Text.RegularExpressions.Regex.Escape(normalizedPattern)
+                        .Replace("\\*", ".*") + "$";
+                    if (System.Text.RegularExpressions.Regex.IsMatch(normalizedPath, regex, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                        return true;
+                }
+
+                // Direct match
+                if (string.Equals(normalizedPath, normalizedPattern, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
     }
 }

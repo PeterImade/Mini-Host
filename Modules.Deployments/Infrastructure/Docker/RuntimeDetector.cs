@@ -40,5 +40,32 @@ namespace Modules.Deployments.Infrastructure.Docker
             var content = DockerfileTemplates.GetTemplateFor(runtime);
             File.WriteAllText(dockerfilePath, content);
         }
+
+        public void EnsureDockerignoreExists(string repoPath)
+        {
+            var dockerignorePath = Path.Combine(repoPath, ".dockerignore");
+            if (File.Exists(dockerignorePath))
+                return; // user already has one
+
+            var runtime = DetectRuntime(repoPath);
+            if (runtime == null)
+            {
+                var defaultIgnore = @"
+                .git
+                node_modules
+                bin
+                obj
+                dist
+                .env
+                .DS_Store
+                ";
+                File.WriteAllText(Path.Combine(repoPath, ".dockerignore"), defaultIgnore);
+
+                return;
+            }
+
+            var content = DockerIgnoreTemplates.GetTemplateFor(runtime!);
+            File.WriteAllText(dockerignorePath, content);
+        }
     }
 }
