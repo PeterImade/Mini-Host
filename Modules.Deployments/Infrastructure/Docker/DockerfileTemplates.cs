@@ -58,27 +58,30 @@ CMD [""./app""]";
             if (csprojFiles.Length == 0)
                 throw new Exception("No .csproj files found. Cannot generate Dockerfile.");
 
-            // 🔍 Detect entry point project
+            // Detect entry project (prefer API/Web)
             var entryProject = csprojFiles
-                .FirstOrDefault(f =>
-                    f.Contains("API", StringComparison.OrdinalIgnoreCase) ||
-                    f.Contains("Web", StringComparison.OrdinalIgnoreCase)) ?? csprojFiles.First();
+                .FirstOrDefault(f => f.Contains("API", StringComparison.OrdinalIgnoreCase) ||
+                                     f.Contains("Web", StringComparison.OrdinalIgnoreCase))
+                ?? csprojFiles.First();
+
+            // Normalize relative path for Docker (Linux-friendly)
+            var relativeEntryProject = Path.GetRelativePath(repoPath, entryProject)
+                .Replace("\\", "/");
 
             var entryProjectName = Path.GetFileNameWithoutExtension(entryProject);
             var entryDll = $"{entryProjectName}.dll";
 
-            // 📦 Build dynamic COPY lines for .csproj folders
+            // Build dynamic COPY lines for .csproj folders
             var csprojDirs = csprojFiles
-            .Select(f => Path.GetDirectoryName(f)!)
-            .Distinct()
-            .Select(d => Path.GetRelativePath(repoPath, d).Replace("\\", "/"))
-            .ToArray();
+                .Select(f => Path.GetDirectoryName(f)!)
+                .Distinct()
+                .Select(d => Path.GetRelativePath(repoPath, d).Replace("\\", "/"))
+                .ToArray();
 
             var sb = new StringBuilder();
             foreach (var dir in csprojDirs)
                 sb.AppendLine($"COPY {dir}/*.csproj {dir}/");
 
-            // 🧱 Choose between solution-based or project-based build
             if (hasSolution)
             {
                 var solutionFile = Directory.GetFiles(repoPath, "*.sln", SearchOption.TopDirectoryOnly)
@@ -97,7 +100,7 @@ COPY {solutionFile} ./
 {sb}
 RUN dotnet restore ""{solutionFile}""
 COPY . .
-RUN dotnet publish ""{entryProject}"" -c Release -o /app/publish
+RUN dotnet publish ""{relativeEntryProject}"" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
@@ -117,8 +120,8 @@ WORKDIR /src
 
 {sb}
 COPY . .
-RUN dotnet restore ""{entryProject}""
-RUN dotnet publish ""{entryProject}"" -c Release -o /app/publish
+RUN dotnet restore ""{relativeEntryProject}""
+RUN dotnet publish ""{relativeEntryProject}"" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
@@ -127,5 +130,6 @@ EXPOSE 8080
 ENTRYPOINT [""dotnet"", ""{entryDll}""]";
             }
         }
+
     }
 }
