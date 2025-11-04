@@ -1,27 +1,27 @@
 ﻿using Docker.DotNet;
 using Modules.Deployments.Application.Interfaces;
-using Docker.DotNet;
 using Docker.DotNet.Models;
-using SharpCompress;
 using SharpCompress.Archives;
-using SharpCompress.Archives.Tar;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using SharpCompress.Common;
 using SharpCompress.Writers;
+using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace Modules.Deployments.Infrastructure.Docker
 {
-    public class DockerManager: IDockerManager
+    public class DockerManager : IDockerManager
     {
         private readonly DockerClient _dockerClient;
-        public DockerManager()
+        private readonly ILogger<DockerManager> _logger;
+
+        public DockerManager(ILogger<DockerManager> logger)
         {
-            _dockerClient = new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine")).CreateClient();
+            _logger = logger;
+            _dockerClient = new DockerClientConfiguration(
+                new Uri("npipe://./pipe/docker_engine")
+            ).CreateClient();
         }
+
         public async Task<string> BuildAndRunContainerAsync(string repoPath, int port, CancellationToken cancellationToken)
         {
             try
@@ -38,27 +38,32 @@ namespace Modules.Deployments.Infrastructure.Docker
                     var progress = new Progress<JSONMessage>(message =>
                     {
                         if (!string.IsNullOrEmpty(message.Stream))
-                            Console.WriteLine(message.Stream.Trim());
+                            _logger.LogInformation("[Docker] {Message}", message.Stream.Trim());
+
                         if (!string.IsNullOrEmpty(message.ErrorMessage))
-                            Console.WriteLine($"[Docker Error]: {message.ErrorMessage}");
+                            _logger.LogError("[Docker Error] {Error}", message.ErrorMessage);
                     });
 
+                    _logger.LogInformation("Starting Docker image build for {RepoPath}", repoPath);
+
                     await _dockerClient.Images.BuildImageFromDockerfileAsync(
-                        buildParams,        // your ImageBuildParameters
-                        buildContext,       // TAR stream
-                        null,               // authConfigs
-                        null,               // headers
-                        progress,           // progress reporter
+                        buildParams,
+                        buildContext,
+                        null,
+                        null,
+                        progress,
                         cancellationToken
                     );
                 }
+
+                _logger.LogInformation("Image built successfully. Creating container on port {Port}...", port);
 
                 var createResponse = await _dockerClient.Containers.CreateContainerAsync(new CreateContainerParameters
                 {
                     Image = imageTag,
                     ExposedPorts = new Dictionary<string, EmptyStruct> {
-                    { port.ToString(), default }
-                },
+                        { port.ToString(), default }
+                    },
                     HostConfig = new HostConfig
                     {
                         PortBindings = new Dictionary<string, IList<PortBinding>>
@@ -70,23 +75,26 @@ namespace Modules.Deployments.Infrastructure.Docker
 
                 await _dockerClient.Containers.StartContainerAsync(createResponse.ID, new ContainerStartParameters(), cancellationToken);
 
+                _logger.LogInformation("Container started successfully. ID: {ContainerId}", createResponse.ID);
+
                 return createResponse.ID;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                _logger.LogError(ex, "Error during Docker build or container start for repo: {RepoPath}", repoPath);
                 throw;
             }
         }
 
         public async Task StopAndRemoveContainerAsync(string containerId, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Stopping and removing container {ContainerId}", containerId);
             await _dockerClient.Containers.StopContainerAsync(containerId, new ContainerStopParameters(), cancellationToken);
             await _dockerClient.Containers.RemoveContainerAsync(containerId, new ContainerRemoveParameters { Force = true }, cancellationToken);
+            _logger.LogInformation("Container {ContainerId} stopped and removed.", containerId);
         }
 
-
-        private static Stream BuildContextFromDirectory(string directory)
+        private Stream BuildContextFromDirectory(string directory)
         {
             var mem = new MemoryStream();
             var tar = TarArchive(directory);
@@ -95,7 +103,7 @@ namespace Modules.Deployments.Infrastructure.Docker
             return mem;
         }
 
-        private static Stream TarArchive(string sourceDir)
+        private Stream TarArchive(string sourceDir)
         {
             var mem = new MemoryStream();
 
@@ -109,7 +117,12 @@ namespace Modules.Deployments.Infrastructure.Docker
                     .Where(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith("#"))
                     .Select(line => line.Trim())
                     .ToList();
+
+                _logger.LogInformation("Loaded {Count} patterns from .dockerignore in {RepoPath}", ignorePatterns.Count, sourceDir);
             }
+
+            int includedCount = 0;
+            int skippedCount = 0;
 
             using (var tarWriter = WriterFactory.Open(mem, ArchiveType.Tar, CompressionType.None))
             {
@@ -117,40 +130,42 @@ namespace Modules.Deployments.Infrastructure.Docker
                 {
                     var relativePath = Path.GetRelativePath(sourceDir, file);
 
-                    // Skip ignored files and directories
                     if (ShouldIgnore(relativePath, ignorePatterns))
+                    {
+                        _logger.LogDebug("⏭️ Skipped {File}", relativePath);
+                        skippedCount++;
                         continue;
+                    }
 
+                    _logger.LogTrace("📦 Including {File}", relativePath);
                     tarWriter.Write(relativePath, file);
+                    includedCount++;
                 }
             }
+
+            _logger.LogInformation("TAR build context complete: {Included} files included, {Skipped} skipped", includedCount, skippedCount);
 
             mem.Seek(0, SeekOrigin.Begin);
             return mem;
         }
 
-        private static bool ShouldIgnore(string relativePath, List<string> ignorePatterns)
+        private bool ShouldIgnore(string relativePath, List<string> ignorePatterns)
         {
             foreach (var pattern in ignorePatterns)
             {
-                // Normalize paths
                 var normalizedPattern = pattern.Replace("\\", "/").Trim();
                 var normalizedPath = relativePath.Replace("\\", "/");
 
-                // Skip directories entirely
                 if (normalizedPath.StartsWith(normalizedPattern + "/", StringComparison.OrdinalIgnoreCase))
                     return true;
 
-                // Simple wildcard support (*)
                 if (normalizedPattern.Contains('*'))
                 {
-                    var regex = "^" + System.Text.RegularExpressions.Regex.Escape(normalizedPattern)
-                        .Replace("\\*", ".*") + "$";
-                    if (System.Text.RegularExpressions.Regex.IsMatch(normalizedPath, regex, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    var regex = "^" + Regex.Escape(normalizedPattern).Replace("\\*", ".*") + "$";
+                    if (Regex.IsMatch(normalizedPath, regex, RegexOptions.IgnoreCase))
                         return true;
                 }
 
-                // Direct match
                 if (string.Equals(normalizedPath, normalizedPattern, StringComparison.OrdinalIgnoreCase))
                     return true;
             }
