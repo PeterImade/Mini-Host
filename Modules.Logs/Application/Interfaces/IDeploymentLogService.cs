@@ -10,5 +10,7 @@ namespace Modules.Logs.Application.Interfaces
     {
         Task AppendLogAsync(Guid appInstanceId, string message, CancellationToken cancellationToken);
         Task SaveHistoryAsync(Guid appInstanceId, string action, string performedBy, CancellationToken cancellationToken);
+        Task<string> GetLogsAsync(Guid appInstanceId, CancellationToken cancellationToken);
+        Task DeleteLogAsync(Guid appInstanceId);
     }
 }

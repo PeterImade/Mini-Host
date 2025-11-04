@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Modules.Logs.Application.Interfaces;
-using Modules.Logs.Infrastructure.Services;
+using Modules.Deployments.Infrastructure.Services;
+using Modules.Logs.Application.Interfaces; 
 using Modules.Logs.Persistence.Context;
 using Shared.Abstractions;
 using System;

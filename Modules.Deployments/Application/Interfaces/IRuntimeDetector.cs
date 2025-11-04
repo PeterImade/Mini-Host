@@ -10,5 +10,7 @@ namespace Modules.Deployments.Application.Interfaces
     {
         string? DetectRuntime(string repoPath);
         void EnsureDockerfileExists(string repoPath);
+        void EnsureDockerignoreExists(string repoPath);
+
     }
 }

@@ -37,7 +37,7 @@ namespace Modules.Deployments.Infrastructure.Docker
             if (runtime == null)
                 throw new Exception("Could not detect runtime. Please include a Dockerfile manually.");
 
-            var content = DockerfileTemplates.GetTemplateFor(runtime);
+            var content = DockerfileTemplates.GetTemplateFor(runtime, repoPath);
             File.WriteAllText(dockerfilePath, content);
         }
 

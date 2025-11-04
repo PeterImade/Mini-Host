@@ -6,6 +6,7 @@ using SharpCompress.Common;
 using SharpCompress.Writers;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
+using Modules.Logs.Application.Interfaces;
 
 namespace Modules.Deployments.Infrastructure.Docker
 {
@@ -13,10 +14,18 @@ namespace Modules.Deployments.Infrastructure.Docker
     {
         private readonly DockerClient _dockerClient;
         private readonly ILogger<DockerManager> _logger;
+        private readonly IDeploymentLogService _deploymentLogService;
+        private readonly IRuntimeDetector _runtimeDetector;
 
-        public DockerManager(ILogger<DockerManager> logger)
+        public DockerManager(
+            ILogger<DockerManager> logger,
+            IDeploymentLogService deploymentLogService,
+            IRuntimeDetector runtimeDetector)
         {
             _logger = logger;
+            _deploymentLogService = deploymentLogService;
+            _runtimeDetector = runtimeDetector;
+
             _dockerClient = new DockerClientConfiguration(
                 new Uri("npipe://./pipe/docker_engine")
             ).CreateClient();
@@ -24,9 +33,20 @@ namespace Modules.Deployments.Infrastructure.Docker
 
         public async Task<string> BuildAndRunContainerAsync(string repoPath, int port, CancellationToken cancellationToken)
         {
+            var appInstanceId = Guid.NewGuid(); // Unique ID per deployment
+
             try
             {
-                string imageTag = $"app_{Guid.NewGuid()}";
+                // 🧩 STEP 1: Prepare Dockerfile and .dockerignore
+                _runtimeDetector.EnsureDockerfileExists(repoPath);
+                _runtimeDetector.EnsureDockerignoreExists(repoPath);
+
+                var prepMsg = $"Verified Dockerfile and .dockerignore exist for repo {repoPath}";
+                _logger.LogInformation(prepMsg);
+                await _deploymentLogService.AppendLogAsync(appInstanceId, prepMsg, cancellationToken);
+
+                // 🧱 STEP 2: Create TAR and build image
+                string imageTag = $"app_{appInstanceId}:latest";
 
                 using (var buildContext = BuildContextFromDirectory(repoPath))
                 {
@@ -35,16 +55,26 @@ namespace Modules.Deployments.Infrastructure.Docker
                         Tags = new[] { imageTag },
                     };
 
-                    var progress = new Progress<JSONMessage>(message =>
+                    var progress = new Progress<JSONMessage>(async message =>
                     {
                         if (!string.IsNullOrEmpty(message.Stream))
-                            _logger.LogInformation("[Docker] {Message}", message.Stream.Trim());
+                        {
+                            var log = $"[Docker] {message.Stream.Trim()}";
+                            _logger.LogInformation(log);
+                            await _deploymentLogService.AppendLogAsync(appInstanceId, log, cancellationToken);
+                        }
 
                         if (!string.IsNullOrEmpty(message.ErrorMessage))
-                            _logger.LogError("[Docker Error] {Error}", message.ErrorMessage);
+                        {
+                            var err = $"[Docker Error] {message.ErrorMessage}";
+                            _logger.LogError(err);
+                            await _deploymentLogService.AppendLogAsync(appInstanceId, err, cancellationToken);
+                        }
                     });
 
-                    _logger.LogInformation("Starting Docker image build for {RepoPath}", repoPath);
+                    var startMsg = $"Starting Docker image build for {repoPath}";
+                    _logger.LogInformation(startMsg);
+                    await _deploymentLogService.AppendLogAsync(appInstanceId, startMsg, cancellationToken);
 
                     await _dockerClient.Images.BuildImageFromDockerfileAsync(
                         buildParams,
@@ -54,9 +84,34 @@ namespace Modules.Deployments.Infrastructure.Docker
                         progress,
                         cancellationToken
                     );
+
+                    await Task.Delay(500, cancellationToken);
+
+                    var images = await _dockerClient.Images.ListImagesAsync(
+                        new ImagesListParameters
+                        {
+                            Filters = new Dictionary<string, IDictionary<string, bool>>
+                        { { "reference", new Dictionary<string, bool> { { imageTag, true } } } }
+                        },
+                        cancellationToken
+                    );
+
+                    if (images == null || images.Count == 0)
+                    {
+                        var failedMsg = $"Image not found after build: {imageTag}";
+                        _logger.LogInformation(failedMsg);
+                        throw new InvalidOperationException($"Image not found after build: {imageTag}");
+                    }
+
+                    var successMsg = "✅ Image built successfully.";
+                    _logger.LogInformation(successMsg);
+                    await _deploymentLogService.AppendLogAsync(appInstanceId, successMsg, cancellationToken);
                 }
 
-                _logger.LogInformation("Image built successfully. Creating container on port {Port}...", port);
+                // ⚙️ STEP 3: Create and run container
+                var createMsg = $"Creating container on port {port}...";
+                _logger.LogInformation(createMsg);
+                await _deploymentLogService.AppendLogAsync(appInstanceId, createMsg, cancellationToken);
 
                 var createResponse = await _dockerClient.Containers.CreateContainerAsync(new CreateContainerParameters
                 {
@@ -75,13 +130,17 @@ namespace Modules.Deployments.Infrastructure.Docker
 
                 await _dockerClient.Containers.StartContainerAsync(createResponse.ID, new ContainerStartParameters(), cancellationToken);
 
-                _logger.LogInformation("Container started successfully. ID: {ContainerId}", createResponse.ID);
+                var containerMsg = $"🚀 Container started successfully. ID: {createResponse.ID}";
+                _logger.LogInformation(containerMsg);
+                await _deploymentLogService.AppendLogAsync(appInstanceId, containerMsg, cancellationToken);
 
                 return createResponse.ID;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during Docker build or container start for repo: {RepoPath}", repoPath);
+                var errMsg = $"❌ Error during Docker build or container start for repo {repoPath}: {ex.Message}";
+                _logger.LogError(ex, errMsg);
+                await _deploymentLogService.AppendLogAsync(Guid.Empty, errMsg, cancellationToken);
                 throw;
             }
         }
